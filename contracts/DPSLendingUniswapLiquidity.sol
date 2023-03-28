@@ -7,7 +7,7 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract UniswapPoolLending is IERC721Receiver {
+contract DPSLendingUniswapLiquidity is IERC721Receiver {
 
     // Loan structure including all informations from the LP
     struct Loan {
