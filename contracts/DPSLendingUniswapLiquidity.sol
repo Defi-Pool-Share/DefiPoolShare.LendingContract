@@ -82,11 +82,10 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
 
     // Deposit your AMM NFT LP into the protocol in-wait for someone to buy it
     function depositNFT(uint256 tokenId, uint256 loanAmount, uint256 loanDuration, address acceptedToken) external {
-        positionManager.transferFrom(msg.sender, address(this), tokenId);
-
         require(_whitelistedTokens[acceptedToken], "You can't use this token for the payment for potential borrowers");
         require (loanDuration > block.timestamp, "Invalid date duration for the loan");
         uint256 index = _loansIndex + 1;
+        positionManager.transferFrom(msg.sender, address(this), tokenId);
 
         _loans.push(Loan({
             lender: msg.sender,
