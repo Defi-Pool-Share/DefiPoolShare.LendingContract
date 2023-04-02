@@ -175,7 +175,7 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         require(loan.borrower == address(0), "NFT is currently borrowed");
         require(!loan.isActive, "Loan is already active");
 
-        positionManager.transferFrom(msg.sender, address(this), tokenId);
+        positionManager.transferFrom(msg.sender, address(this), loan.tokenId);
         loan.startTime = block.timestamp;
         loan.endTime = loanDuration;
         loan.loanAmount = loanAmount;
@@ -184,17 +184,6 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         // emit the update event
         emit LoanUpdated(loan.loanIndex);
     }
-
-    // function getAvailableLoans() external view returns (Loan[] memory) {
-    //     uint256 availableLoansCount = availableLoanIndexes.length;
-    //     Loan[] memory availableLoans = new Loan[](availableLoansCount);
-
-    //     for (uint256 i = 0; i < availableLoansCount; i++) {
-    //         availableLoans[i] = loans[availableLoanIndexes[i]];
-    //     }
-
-    //     return availableLoans;
-    // }
 
     function onERC721Received(
         address,
