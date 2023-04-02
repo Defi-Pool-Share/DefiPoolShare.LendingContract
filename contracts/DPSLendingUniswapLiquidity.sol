@@ -57,6 +57,11 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
     // list of authorized tokens for payment of loans
     mapping(address => bool)        public _whitelistedTokens;
 
+    // Loan creation event
+    event LoanCreated(address indexed _from, uint256 indexed _loanIndex);
+
+    // Loan updated event
+    event LoanUpdated(uint256 indexed _loanIndex);
 
     constructor(address _positionManager) {
         positionManager = INonfungiblePositionManager(_positionManager);
@@ -84,7 +89,6 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
     function depositNFT(uint256 tokenId, uint256 loanAmount, uint256 loanDuration, address acceptedToken) external {
         require(_whitelistedTokens[acceptedToken], "You can't use this token for the payment for potential borrowers");
         require (loanDuration > block.timestamp, "Invalid date duration for the loan");
-        uint256 index = _loansIndex + 1;
         positionManager.transferFrom(msg.sender, address(this), tokenId);
 
         _loans.push(Loan({
@@ -96,12 +100,15 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
             creationTime: block.timestamp,
             startTime: 0,
             endTime: loanDuration,
-            loanIndex: index,
+            loanIndex: _loans.length,
             isActive: true
         }));
 
+        // Emit the loan created event
+        emit LoanCreated(msg.sender, _loans.length - 1);
+
         // increment total index of loan created
-        _loansIndex = index;
+        _loansIndex = _loans.length;
     }
 
     // Function for borrowers to buy a certain pool share
@@ -117,6 +124,9 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         loan.startTime = block.timestamp;
         loan.endTime = loan.endTime + (loan.startTime - loan.creationTime);
         loan.isActive = false;
+
+        // emit the update event
+        emit LoanUpdated(loan.loanIndex);
     }
 
     function claimFees(uint256 loanIndex) external {
@@ -143,33 +153,20 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         return (token0, token1);
     }
 
-    function returnNFT(uint256 loanIndex, bool withdraw) external {
-        Loan storage loan = _loans[loanIndex];
-        require(block.timestamp >= loan.endTime, "Loan period has not ended yet");
-        require(msg.sender == loan.borrower, "Only borrower can return the NFT");
-
-        loan.borrower = address(0);
-        loan.startTime = 0;
-        if (withdraw) {
-            // LP can directly receive back their NFT
-            withdrawNFT(loanIndex);
-        }
-        loan.isActive = false;
-    }
-
     function withdrawNFT(uint256 loanIndex) public {
         Loan storage loan = _loans[loanIndex];
         require(loan.lender == msg.sender, "Only lender can withdraw the NFT");
-        require(block.timestamp >= loan.endTime, "Loan period has not ended yet");
-        require(loan.isActive, "Loan is not active anymore, there is nothing to withdraw!");
-
         if (loan.borrower != address(0)) {
+            require(block.timestamp >= loan.endTime, "Loan period has not ended yet");
             loan.borrower = address(0);
             loan.startTime = 0;
         }
 
         positionManager.transferFrom(address(this), loan.lender, loan.tokenId);
         loan.isActive = false;
+
+        // emit the update event
+        emit LoanUpdated(loan.loanIndex);
     }
 
     function reactivateLoan(uint256 loanIndex, uint256 loanDuration, uint256 loanAmount) external {
@@ -178,10 +175,14 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         require(loan.borrower == address(0), "NFT is currently borrowed");
         require(!loan.isActive, "Loan is already active");
 
+        positionManager.transferFrom(msg.sender, address(this), tokenId);
         loan.startTime = block.timestamp;
         loan.endTime = loanDuration;
         loan.loanAmount = loanAmount;
         loan.isActive = true;
+        
+        // emit the update event
+        emit LoanUpdated(loan.loanIndex);
     }
 
     // function getAvailableLoans() external view returns (Loan[] memory) {
