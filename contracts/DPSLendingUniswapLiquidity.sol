@@ -57,6 +57,12 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
     // list of authorized tokens for payment of loans
     mapping(address => bool)        public _whitelistedTokens;
 
+    // list of loan by lenders
+    mapping(address => uint256[])      public _loanByLenders;
+    
+    // list of loan by borrowers
+    mapping(address => uint256[])      public _loanByBorrowers;
+
     // Loan creation event
     event LoanCreated(address indexed _from, uint256 indexed _loanIndex);
 
@@ -107,6 +113,9 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         // Emit the loan created event
         emit LoanCreated(msg.sender, _loans.length - 1);
 
+        // add the loan to the list of the loan owned by the lender
+        _loanByLenders[msg.sender].push(_loans.length - 1);
+
         // increment total index of loan created
         _loansIndex = _loans.length;
     }
@@ -127,6 +136,22 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
 
         // emit the update event
         emit LoanUpdated(loan.loanIndex);
+
+        
+        // add the loan to the list of the loan owned by the borrower
+        _loanByBorrowers[msg.sender].push(loan.loanIndex);
+    }
+
+    function canClaimFees(uint256 loanIndex) public view returns (bool _canClaim) {
+        Loan storage loan = _loans[loanIndex];
+        if(msg.sender != loan.borrower) {
+            return false;
+        }
+        if(block.timestamp >= loan.endTime) {
+            return false;
+        }
+
+        return true;
     }
 
     function claimFees(uint256 loanIndex) external {
@@ -158,12 +183,36 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         require(loan.lender == msg.sender, "Only lender can withdraw the NFT");
         if (loan.borrower != address(0)) {
             require(block.timestamp >= loan.endTime, "Loan period has not ended yet");
+
+            // delete the loan for the borrower
+            uint256[] storage borrowerPoolArray = _loanByBorrowers[loan.borrower];
+            uint256 arrayLengthBorrower = borrowerPoolArray.length;
+            for (uint256 i = 0; i < arrayLengthBorrower; i++) {
+                if (borrowerPoolArray[i] == value) {
+                    borrowerPoolArray[i] = borrowerPoolArray[arrayLengthBorrower - 1];
+                    borrowerPoolArray.pop();
+                    break;
+                }
+            }
+
+            // reset the borrower on the loan
             loan.borrower = address(0);
             loan.startTime = 0;
         }
 
         positionManager.transferFrom(address(this), loan.lender, loan.tokenId);
         loan.isActive = false;
+
+        // delete the loan for the lender
+        uint256[] storage lenderPoolArray = _loanByLenders[loan.lender];
+        uint256 arrayLength = lenderPoolArray.length;
+        for (uint256 i = 0; i < arrayLength; i++) {
+            if (lenderPoolArray[i] == value) {
+                lenderPoolArray[i] = lenderPoolArray[arrayLength - 1];
+                lenderPoolArray.pop();
+                break;
+            }
+        }
 
         // emit the update event
         emit LoanUpdated(loan.loanIndex);
@@ -183,6 +232,9 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         
         // emit the update event
         emit LoanUpdated(loan.loanIndex);
+
+        // add the loan to the list of the loan owned by the lender
+        _loanByLenders[msg.sender].push(loan.loanIndex);
     }
 
     function onERC721Received(
