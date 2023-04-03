@@ -188,7 +188,7 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
             uint256[] storage borrowerPoolArray = _loanByBorrowers[loan.borrower];
             uint256 arrayLengthBorrower = borrowerPoolArray.length;
             for (uint256 i = 0; i < arrayLengthBorrower; i++) {
-                if (borrowerPoolArray[i] == value) {
+                if (borrowerPoolArray[i] == loan.loanIndex) {
                     borrowerPoolArray[i] = borrowerPoolArray[arrayLengthBorrower - 1];
                     borrowerPoolArray.pop();
                     break;
@@ -207,7 +207,7 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         uint256[] storage lenderPoolArray = _loanByLenders[loan.lender];
         uint256 arrayLength = lenderPoolArray.length;
         for (uint256 i = 0; i < arrayLength; i++) {
-            if (lenderPoolArray[i] == value) {
+            if (lenderPoolArray[i] == loan.loanIndex) {
                 lenderPoolArray[i] = lenderPoolArray[arrayLength - 1];
                 lenderPoolArray.pop();
                 break;
