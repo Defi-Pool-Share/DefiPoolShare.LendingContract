@@ -91,6 +91,14 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         _whitelistedTokens[token] = state;
     }
 
+    function getLoanByLendersByAddress(address index) public view returns(uint256[] memory) {
+        return _loanByLenders[index];
+    }
+
+    function getLoanByBorrowersByAddress(address index) public view returns(uint256[] memory) {
+        return _loanByBorrowers[index];
+    }
+
     // Deposit your AMM NFT LP into the protocol in-wait for someone to buy it
     function depositNFT(uint256 tokenId, uint256 loanAmount, uint256 loanDuration, address acceptedToken) external {
         require(_whitelistedTokens[acceptedToken], "You can't use this token for the payment for potential borrowers");
@@ -171,6 +179,23 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
 
         IERC20(token0).transfer(loan.borrower, amount0);
         IERC20(token1).transfer(loan.borrower, amount1);
+    }
+
+    function getClaimableFees(address loanIndex) public view returns(uint256, uint256) {
+        Loan storage loan = _loans[loanIndex];
+        require(msg.sender == loan.borrower, "Only borrower can claim fees");
+        require(block.timestamp < loan.endTime, "Loan period has ended");
+        Loan storage loan = _loans[loanIndex];
+        
+        (address token0, address token1) = _getTokenForPosition(loan.tokenId);
+        INonfungiblePositionManager.CollectParams memory params = INonfungiblePositionManager.CollectParams({
+            tokenId: loan.tokenId,
+            recipient: address(this),
+            amount0Max: type(uint128).max,
+            amount1Max: type(uint128).max
+        });
+        (uint256 amount0, uint256 amount1) = positionManager.collect(params);
+        return amount0, amount1;
     }
 
     function _getTokenForPosition(uint256 tokenId) private view returns (address _token0, address _token1) {
