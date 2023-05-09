@@ -16,7 +16,7 @@ module.exports = {
   },
   networks: {
     goerli: {
-      url: "https://goerli.infura.io/v3/f565a35af5f84cbdb50d07b954725a9b",
+      url: "https://goerli.infura.io/v3/95ecc661cf1b431ea8f41e7fc21daaff",
       chainId: 5,
       //gasPrice: 20000000000,
       accounts: [`0x${mnemonic}`]
