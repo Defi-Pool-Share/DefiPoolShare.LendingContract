@@ -69,6 +69,9 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
     // Loan updated event
     event LoanUpdated(uint256 indexed _loanIndex);
 
+    // Loan withdraw event
+    event LoanWithdraw(uint256 indexed _loanIndex);
+
     constructor(address _positionManager) {
         positionManager = INonfungiblePositionManager(_positionManager);
 
@@ -162,7 +165,7 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         return true;
     }
 
-    function claimFees(uint256 loanIndex) external {
+    function claimFees(uint256 loanIndex) external returns(uint256, uint256) {
         Loan storage loan = _loans[loanIndex];
         require(msg.sender == loan.borrower, "Only borrower can claim fees");
         require(block.timestamp < loan.endTime, "Loan period has ended");
@@ -179,6 +182,7 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
 
         IERC20(token0).transfer(loan.borrower, amount0);
         IERC20(token1).transfer(loan.borrower, amount1);
+        return (amount0, amount1);
     }
 
     function getClaimableFees(uint256 loanIndex) public view returns(uint256, uint256) {
@@ -231,7 +235,7 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         }
 
         // emit the update event
-        emit LoanUpdated(loan.loanIndex);
+        emit LoanWithdraw(loan.loanIndex);
     }
 
     function reactivateLoan(uint256 loanIndex, uint256 loanDuration, uint256 loanAmount) external {
