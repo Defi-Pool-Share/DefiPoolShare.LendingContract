@@ -185,6 +185,26 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         return (amount0, amount1);
     }
 
+    function claimFeesLender(uint256 loanIndex) external returns(uint256, uint256) {
+        Loan storage loan = _loans[loanIndex];
+        require(msg.sender == loan.lender, "Only lender can claim fees");
+        require(loan.borrower == address(0), "NFT is already borrowed!");
+
+        (address token0, address token1) = _getTokenForPosition(loan.tokenId);
+
+        INonfungiblePositionManager.CollectParams memory params = INonfungiblePositionManager.CollectParams({
+            tokenId: loan.tokenId,
+            recipient: address(this),
+            amount0Max: type(uint128).max,
+            amount1Max: type(uint128).max
+        });
+        (uint256 amount0, uint256 amount1) = positionManager.collect(params);
+
+        IERC20(token0).transfer(loan.lender, amount0);
+        IERC20(token1).transfer(loan.lender, amount1);
+        return (amount0, amount1);
+    }
+
     function getClaimableFees(uint256 loanIndex) public view returns(uint256, uint256) {
         Loan storage loan = _loans[loanIndex];
         require(msg.sender == loan.borrower, "Only borrower can claim fees");
