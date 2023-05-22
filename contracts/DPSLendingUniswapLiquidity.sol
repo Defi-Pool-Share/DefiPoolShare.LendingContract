@@ -53,6 +53,15 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
 
     // Deployer of the Defi Pool Share Protocol
     address                         public _dpstDeployer;
+    
+    // Wallet to receive the fees
+    address public feeReceiver;
+    
+    // Amount of percentage gived to the fee receiver
+    uint256 public feePercentage;
+
+    // Owner of the contract
+    address public owner;
 
     // list of authorized tokens for payment of loans
     mapping(address => bool)        public _whitelistedTokens;
@@ -72,13 +81,26 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
     // Loan withdraw event
     event LoanWithdraw(uint256 indexed _loanIndex);
 
-    constructor(address _positionManager) {
+    constructor(address _positionManager, address _feeReceiver, uint256 _feePercentage) {
         positionManager = INonfungiblePositionManager(_positionManager);
 
 
         // Allow Defi Pool Share Token as payment for a Loan
         _whitelistedTokens[address(0x0Cb80b1c0E6AeBB031a7Ec26219ab162f0F9bC2B)] = true;
+        feeReceiver = _feeReceiver;
+        feePercentage = _feePercentage;
+        owner = msg.sender;
         //TODO: add USDT,USDC,WETH,WBTC
+    }
+
+    function setFeeReceiver(address _feeReceiver) external {
+        require(msg.sender == owner, "Only owner can change the fee receiver");
+        feeReceiver = _feeReceiver;
+    }
+
+    function setFeePercentage(uint256 _feePercentage) external {
+        require(msg.sender == owner, "Only owner can change the fee percentage");
+        feePercentage = _feePercentage;
     }
 
 
@@ -137,8 +159,12 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         require(loan.borrower == address(0), "NFT is already borrowed!");
         require(loan.isActive, "Loan is not active, you can't borrow it");
 
+        uint256 fee = (loan.loanAmount * feePercentage) / 100;
+        uint256 netLoanAmount = loan.loanAmount - fee;
+
         IERC20 acceptedToken = IERC20(loan.acceptedToken);
-        acceptedToken.transferFrom(msg.sender, loan.lender, loan.loanAmount);
+        require(acceptedToken.transferFrom(msg.sender, feeReceiver, fee), "Fee transfer failed");
+        require(acceptedToken.transferFrom(msg.sender, loan.lender, netLoanAmount), "Loan transfer failed");
 
         loan.borrower = msg.sender;
         loan.startTime = block.timestamp;
