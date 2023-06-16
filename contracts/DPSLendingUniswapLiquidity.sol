@@ -50,9 +50,6 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
 
     // Uniswap V3 Position Manager
     INonfungiblePositionManager     public  positionManager;
-
-    // Deployer of the Defi Pool Share Protocol
-    address                         public _dpstDeployer;
     
     // Wallet to receive the fees
     address public feeReceiver;
@@ -61,7 +58,7 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
     uint256 public feePercentage;
 
     // Owner of the contract
-    address public owner;
+    address public _owner;
 
     // list of authorized tokens for payment of loans
     mapping(address => bool)        public _whitelistedTokens;
@@ -89,17 +86,17 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         _whitelistedTokens[address(0x0Cb80b1c0E6AeBB031a7Ec26219ab162f0F9bC2B)] = true;
         feeReceiver = _feeReceiver;
         feePercentage = _feePercentage;
-        owner = msg.sender;
+        _owner = msg.sender;
         //TODO: add USDT,USDC,WETH,WBTC
     }
 
     function setFeeReceiver(address _feeReceiver) external {
-        require(msg.sender == owner, "Only owner can change the fee receiver");
+        require(msg.sender == _owner, "Only owner can change the fee receiver");
         feeReceiver = _feeReceiver;
     }
 
     function setFeePercentage(uint256 _feePercentage) external {
-        require(msg.sender == owner, "Only owner can change the fee percentage");
+        require(msg.sender == _owner, "Only owner can change the fee percentage");
         feePercentage = _feePercentage;
     }
 
@@ -112,7 +109,7 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
     // Whitelist a specific token for payment for the LP loan
     function whitelistToken(address token, bool state) public 
     {
-        require(msg.sender == _dpstDeployer, "Only DPST protocol owners can allow new ERC20 to be used as payment");
+        require(msg.sender == _owner, "Only DPST protocol owners can allow new ERC20 to be used as payment");
         _whitelistedTokens[token] = state;
     }
 
