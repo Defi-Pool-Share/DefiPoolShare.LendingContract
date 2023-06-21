@@ -85,6 +85,8 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
         // Allow Defi Pool Share Token as payment for a Loan
         _whitelistedTokens[address(0x0Cb80b1c0E6AeBB031a7Ec26219ab162f0F9bC2B)] = true;
         feeReceiver = _feeReceiver;
+        require(_feePercentage < 100, "Fee percentage is too high");
+        require(_feePercentage >= 0, "Fee is too low");
         feePercentage = _feePercentage;
         _owner = msg.sender;
         //TODO: add USDT,USDC,WETH,WBTC
@@ -97,6 +99,8 @@ contract DPSLendingUniswapLiquidity is IERC721Receiver {
 
     function setFeePercentage(uint256 _feePercentage) external {
         require(msg.sender == _owner, "Only owner can change the fee percentage");
+        require(_feePercentage < 100, "Fee percentage is too high");
+        require(_feePercentage >= 0, "Fee percentage is too low");
         feePercentage = _feePercentage;
     }
 
